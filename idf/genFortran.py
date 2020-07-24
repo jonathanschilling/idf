@@ -3,7 +3,7 @@
 """
 Created on Tue Nov 26 15:17:47 2019
 
-@author: Jonathan Schilling (jonathan.schilling@ipp.mpg.de)
+@author: Jonathan Schilling (jonathan.schilling@mail.de)
 """
 
 #%% prepare for code generation
