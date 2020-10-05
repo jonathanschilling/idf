@@ -8,8 +8,6 @@ Interface Definition Framework
 
 import os # linesep
 
-
-
 # data container class for all information specifying a variable
 class Variable:
     name = None
