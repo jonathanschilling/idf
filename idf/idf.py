@@ -8,11 +8,10 @@ Interface Definition Framework
 
 import os # linesep
 
-# Class declarations
+
 
 # data container class for all information specifying a variable
 class Variable:
-    
     name = None
     isParameter = False
     description = None
@@ -25,45 +24,6 @@ class Variable:
     
     def __init__(self, name):
         self.name = name
-    
-    def __str__(self):
-        if self.isParameter:
-            description = "[parameter] "
-        else:
-            description = "[ variable] "
-        description += (self.name+os.linesep
-                +"         dtype: "+self.dtype+os.linesep
-                +" default value: "+str(self.defaultValue)+os.linesep)
-        if self.unit is not None:
-            description += "          unit: "+self.unit+os.linesep
-        
-        if self.rank > 0:
-            description += "          rank: "+str(self.rank)+os.linesep
-            
-            if self.startingIndices is not None and len(self.startingIndices) != self.rank:
-                raise RuntimeError("length of startingIndices is not equal to specified rank for "+self.name)
-            
-            # maximumIndices are needed always
-            if len(self.maximumIndices) != self.rank:
-                raise RuntimeError("length of  maximumIndices is not equal to specified rank for "+self.name)
-             
-            rankDesc = "["
-            for r in range(self.rank):
-                startingIndex = "1"
-                if self.startingIndices is not None and self.startingIndices[r] is not None and self.startingIndices[r].strip() != "":
-                    startingIndex = self.startingIndices[r]
-                maximumIndex = self.maximumIndices[r]
-                rankDesc += startingIndex+":"+maximumIndex
-                if r < self.rank-1:
-                    rankDesc += ", "
-            rankDesc += "]"
-            
-            description += "    dimensions: "+rankDesc
-        
-        if self.description is not None:
-            description += os.linesep+toDoc(self.description, doc_fmt="raw")
-        
-        return description
     
     def setIsParameter(self, isParameter):
         self.isParameter = isParameter
@@ -89,12 +49,67 @@ class Variable:
     def setMaximumIndices(self, maximumIndices):
         self.maximumIndices = maximumIndices
     
-    
-    
-    
+    def __str__(self):
+        if self.isParameter:
+            description = "[parameter] "
+        else:
+            description = "[ variable] "
+        description += self.name+os.linesep
+        dtypeDesc = "         dtype: "
+        dtypeDescLen = len(dtypeDesc)
+        description += dtypeDesc
+        if type(self.dtype) is list:
+            numTypes = len(self.dtype)
+            for i,t in enumerate(self.dtype):
+                indentedDesc= indented(dtypeDescLen, str(t), " ")
+                if i==0:
+                    description += indentedDesc[dtypeDescLen:]
+                else:
+                    description += indentedDesc
+                if i < numTypes-1:
+                    description += ","+os.linesep
+        else:
+            description += str(self.dtype)
+        description += os.linesep
+        
+        if self.defaultValue is not None:
+            description += " default value: "+str(self.defaultValue)+os.linesep
+            
+        if self.unit is not None:
+            description += "          unit: "+self.unit+os.linesep
+        
+        if self.rank > 0:
+            description += "          rank: "+str(self.rank)+os.linesep
+            
+            if self.startingIndices is not None and len(self.startingIndices) != self.rank:
+                raise RuntimeError("length of startingIndices is not equal to specified rank for "+self.name)
+            
+            # maximumIndices are needed always
+            if len(self.maximumIndices) != self.rank:
+                raise RuntimeError("length of  maximumIndices is not equal to specified rank for "+self.name)
+             
+            rankDesc = "["
+            for r in range(self.rank):
+                startingIndex = "1"
+                if self.startingIndices is not None and self.startingIndices[r] is not None and self.startingIndices[r].strip() != "":
+                    startingIndex = self.startingIndices[r]
+                maximumIndex = self.maximumIndices[r]
+                rankDesc += startingIndex+":"+maximumIndex
+                if r < self.rank-1:
+                    rankDesc += ", "
+            rankDesc += "]"
+            
+            description += "    dimensions: "+rankDesc+os.linesep
+        
+        if self.description is not None:
+            description += toDoc(self.description, doc_fmt="raw")
+        
+        return description
+
+
+
 # data container class for all information specifying a namelist
 class Namelist(object):
-    
     name = None
     description = None
     variables = None
@@ -120,10 +135,6 @@ class Namelist(object):
 
 
 
-
-
-
-# source code generation utility methods
 
 # indent a string (which might consist of multiple lines) by a given number of tabs or
 # some other given character
