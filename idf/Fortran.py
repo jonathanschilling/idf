@@ -8,9 +8,32 @@ Created on Tue Nov 26 15:17:47 2019
 
 # prepare for code generation
 
-from .idf import indented, get_creation_tag
+from .idf import Variable, toDoc, indented
 
+# data container class for all information specifying a namelist
+class Namelist(object):
+    
+    name = None
+    description = None
+    variables = None
+    
+    def __init__(self, name):
+        self.name = name
+        self.variables = []
+    
+    def setDescription(self, description):
+        self.description = description
+    
+    def addVariable(self, var):
+        if type(var) is not Variable:
+            raise TypeError("type of var is not Variable but '"+str(type(var))+"'")
+        self.variables.append(var)
 
+    def addVariables(self, listOfVars):
+        if type(listOfVars) is not list:
+            raise TypeError("type of listOfVars is not list but '"+str(type(listOfVars))+"'")
+        for var in listOfVars:
+            self.addVariable(var)
 
 # datatype in Fortran from specification file
 def dtype(dtype):
@@ -44,8 +67,6 @@ def commentOut(multilineString, commentDirection = ">"):
         result += comment+line+"\n"
     result += comment+lines[-1]
     return result
-
-from .idf import Variable, toDoc
 
 # declare a variable including dimensions(TODO) and doxygen-compatible comments
 def declareVariable(var, attachDescription=True, refDeclLength=None):
@@ -119,9 +140,36 @@ def declareNamelist(nml):
     result += " "+nml.variables[-1].name
     return result
 
+def readHdf5Group(name, contents):
+    if type(contents) is list:
+        print("read group '"+name+"' from HDF5 file")
+        for item in contents:
+            if type(item) is Variable:
+                readHdf5Dataset(item)
+            elif type(item) is Namelist:
+                readHdf5Group(item.name, item.variables)
+    elif type(contents) is Namelist:
+        print("read namelist '"+contents.name+"' from HDF5 file")
+        readHdf5Group(contents.name, contents.variables)
 
-# generate Fortran type declarations
-from .Hdf5File import Group, Dataset, Datatype
+def readHdf5Dataset(item):
+    print("read dataset "+item.name)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # generate custom compound datatype declaration in Fortran

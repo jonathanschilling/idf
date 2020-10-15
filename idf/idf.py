@@ -48,31 +48,6 @@ class Variable:
     def setIsParameter(self, isParameter):
         self.isParameter = isParameter
 
-# data container class for all information specifying a namelist
-class Namelist(object):
-    
-    name = None
-    description = None
-    variables = None
-    
-    def __init__(self, name):
-        self.name = name
-        self.variables = []
-    
-    def setDescription(self, description):
-        self.description = description
-    
-    def addVariable(self, var):
-        if type(var) is not Variable:
-            raise TypeError("type of var is not Variable but '"+str(type(var))+"'")
-        self.variables.append(var)
-
-    def addVariables(self, listOfVars):
-        if type(listOfVars) is not list:
-            raise TypeError("type of listOfVars is not list but '"+str(type(listOfVars))+"'")
-        for var in listOfVars:
-            self.addVariable(var)
-
 
 
 
@@ -104,6 +79,15 @@ def indent(tabs, lines, indentationChar='\t'):
 
 def unindent(tabs, lines, indentationChar='\t'):
     return tabs-1, indented(tabs, lines, indentationChar)
+
+# get a concise relative path name to be put into the generated Fortran code
+def relname(reference, target):
+    import os
+    absFortranFilename = os.path.abspath(target)
+    relative_path_to_this_file = os.path.relpath(reference, os.path.split(absFortranFilename)[0])
+    if os.path.split(relative_path_to_this_file)[0]=='':
+        relative_path_to_this_file = os.path.join(".", relative_path_to_this_file)
+    return relative_path_to_this_file
 
 # convert the description item from a Variable into the corresponding documentation
 def toDoc(desc):
