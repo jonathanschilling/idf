@@ -290,10 +290,188 @@ def _linkExists(enclosingGroup, name, contents, numTabs=1, indentationChar="\t",
               +"endif ! query existence of "+name+" link")
     return output
 
+def _readScalarInt(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    return "! TODO: actually read "+name
+
+def _datatypesEqual(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _readScalarInt,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _readScalarInt
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+    
+    output = ("! verify correct datatype of /input/physics/Igeometry"+"\n"
+              +"if (datatypes_equal) then"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked that datatype of /input/physics/Igeometry is H5T_NATIVE_INTEGER :-)\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "write(ounit,*) \"ERROR: native datatype of /input/physics/Igeometry should be H5T_NATIVE_INTEGER but is \",dtype_id_native", indentationChar)+"\n"
+              +"endif !verify correct datatype of /input/physics/Igeometry")
+    return output
+
+def _nativeDatatypeIsInteger(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _datatypesEqual,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _datatypesEqual
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+    
+    output = ("! call comparison routine for /input/physics/Igeometry datatype"+"\n"
+              +"call h5tequal_f(dtype_id_native, H5T_NATIVE_INTEGER, datatypes_equal, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error comparing datatype of /input/physics/Igeometry to H5T_NATIVE_INTEGER\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully executed comparison of datatype of /input/physics/Igeometry with H5T_NATIVE_INTEGER\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"endif ! call comparison routine for /input/physics/Igeometry datatype")
+    return output
+
+def _closeDatatype(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output = ("! close datatype of /input/physics/Igeometry"+"\n"
+              +"call h5tclose_f(dtype_id, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error closing datatype of /input/physics/Igeometry\"", indentationChar)+"\n"
+              +"elseif (verbose) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"successfully closed datatype of /input/physics/Igeometry\"", indentationChar)+"\n"
+              +"endif ! close datatype of /input/physics/Igeometry")
+    return output
+
+def _convertDatatypeToNative(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _nativeDatatypeIsInteger,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _nativeDatatypeIsInteger
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+        
+    output = ("! convert datatype to native array for comparison"+"\n"
+              +"call h5tget_native_type_f(dtype_id, 1, dtype_id_native, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error converting datatype of /input/physics/Igeometry to native datatype\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully converted datatype of /input/physics/Igeometry to native datatype\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations)+"\n"
+                        +_closeDatatype(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar)+"\n"
+              +"endif ! convert datatype to native array for comparison")
+    return output
+
+def _queryDatatype(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _convertDatatypeToNative,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _convertDatatypeToNative
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+    
+    output = ("! query datatype of /input/physics/Igeometry"+"\n"
+              +"call h5dget_type_f(dset_input_physics_Igeometry, dtype_id, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error querying datatype of /input/physics/Igeometry\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully queried datatype of /input/physics/Igeometry\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"endif ! query datatype of /input/physics/Igeometry")
+    return output
+    
+
+def _isScalarDataspace(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _queryDatatype,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _queryDatatype
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+
+    output = ("! check that the type of the /input/physics/Igeometry dataspace is H5S_SCALAR_F"+"\n"
+              +"if (dspace_type.eq.H5S_SCALAR_F) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"successfully verified that the type of the /input/physics/Igeometry dataspace is H5S_SCALAR_F\""+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "write(ounit,*) \"ERROR: type of dataspace /input/physics/Igeometry is not H5S_SCALAR_F but \",dspace_type", indentationChar)+"\n"
+              +"endif ! check that the type of the /input/physics/Igeometry dataspace is H5S_SCALAR_F")
+    return output
+
+def _getDataspaceType(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _isScalarDataspace,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _isScalarDataspace
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+
+    output = ("! determine the type of the dataspace"+"\n"
+              +"call h5sget_simple_extent_type_f(dataspace, dspace_type, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error getting type of /input/physics/Igeometry dataspace\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "! check that the type of the /input/physics/Igeometry dataspace is H5S_SCALAR_F"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"endif ! open dataspace of /input/physics/Igeometry")
+    return output
+    
+    
+
+def _closeDataspace(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output=("! close dataspace of /input/physics/Igeometry"+"\n"
+            +"call h5sclose_f(dataspace, hdfier)"+"\n"
+            +"if (hdfier.ne.0) then ; write(ounit,*) \"error closing dataspace of /input/physics/Igeometry\" ; endif")
+    return output
+
+def _openDataspace(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _isScalarDataspace,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _getDataspaceType
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+        
+    output = ("! open dataspace of /input/physics/Igeometry"+"\n"
+              +"call h5dget_space_f(dset_input_physics_Igeometry, dataspace, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error getting dataspace of /input/physics/Igeometry\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully got dataspace of "+name+"\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations)+"\n"
+                        +_closeDataspace(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar)+"\n"
+              +"endif ! open dataspace of /input/physics/Igeometry")
+    return output
+
+
+def _checkIsDataset(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
+    # by default, the next nested step is to call _openDataspace,
+    # but allow for flexibitly by checking provided nestedOperations
+    nestedOperation = _openDataspace
+    nextOperations = None
+    if nestedOperations is not None and type(nestedOperations) is list and len(nestedOperations) > 0:
+        nestedOperation = nestedOperations[0]
+        nextOperations = nestedOperations[1:]
+        
+    output = ("! check if "+name+" is a Dataset"+"\n"
+              +"if (item_type.ne.H5I_DATASET_F) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error verifying that object "+name+" is a Dataset(\",H5I_DATASET_F,\"); rather it is \",item_type", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully verified that "+name+" is a Dataset\" ; endif"+"\n"
+                        +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
+              +"endif ! check if "+name+" is a Group")
+    return output
+
+
+
+
 def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
-    # nested operations to be performed to (reliably and error-proof) read the contents of a HDF5 group
+    # nested operations to be performed to (reliably and error-proof)
+    # read the contents of a HDF5 group
     return _linkExists(enclosingGroup, name, contents, numTabs, indentationChar,
-                       [_objectAtLink,
+                        [_objectAtLink,
                         _openObject,
                         _queryType,
                         _checkIsGroup,
@@ -303,8 +481,11 @@ def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t
 
 
 def readHdf5Dataset(enclosingGroup, item, numTabs=1, indentationChar="\t"):
-    print("read dataset "+item.name)
-    return "! read "+item.name
+    return _linkExists(enclosingGroup, item.name, None, numTabs, indentationChar,
+                        [_objectAtLink,
+                        _openObject,
+                        _queryType,
+                        _checkIsDataset])
 
 
 
