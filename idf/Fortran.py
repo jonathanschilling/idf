@@ -168,7 +168,9 @@ def _readGroupContents(enclosingGroup, name, contents, numTabs=1, indentationCha
     elif type(contents) is Namelist:
         print("read namelist '"+contents.name+"' from HDF5 file")
         output += readHdf5Group("grp_"+name, contents.name, contents.variables, numTabs, indentationChar)+"\n"
-    return output
+    
+    # [:-1] to remove last '\n'
+    return output[:-1]
 
 def _checkIsGroup(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
     # by default, the next nested step is to call _readGroupContents,
@@ -228,7 +230,7 @@ def _openObject(enclosingGroup, name, contents, numTabs=1, indentationChar="\t",
     output = ("! try to open "+name+" object"+"\n"
               +"call h5oopen_f("+enclosingGroup+", \""+name+"\", grp_"+name+", hdfier)"+"\n"
               +"if (hdfier.ne.0) then"+"\n"
-              +indented(numTabs, "write(ounit,*) \"error opening object "+name+"\""+"\n", indentationChar)+"\n"
+              +indented(numTabs, "write(ounit,*) \"error opening object "+name+"\"", indentationChar)+"\n"
               +"else"+"\n"
               +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully opened object at "+name+"\" ; endif"+"\n"
                         +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations)+"\n"
@@ -295,7 +297,7 @@ def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t
                         _openObject,
                         _queryType,
                         _checkIsGroup,
-                        _readGroupContents])+"\n"
+                        _readGroupContents])
 
 
 
