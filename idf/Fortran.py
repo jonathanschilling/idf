@@ -140,21 +140,76 @@ def declareNamelist(nml):
     result += " "+nml.variables[-1].name
     return result
 
-def readHdf5Group(name, contents):
+
+
+def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    return _linkExists(enclosingGroup, name, contents, numTabs, indentationChar)
+
+def _linkExists(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output = ("! query existence of "+name+" link"+"\n"
+              +"call h5lexists_f("+enclosingGroup+", \""+name+"\", item_exists, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error checking if "+name+" link exists\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked if the "+name+" link exists\" ; endif"+"\n"
+                        +"! check that /input link exists"+"\n"
+                        +"if (item_exists) then"+"\n"
+                        +indented(numTabs, "if (verbose) then; write(ounit,*) \"successfully checked that the link "+name+" exists\" ; endif"+"\n"
+                                  +_objectAtLink(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar), indentationChar)+"\n"
+              +indented(numTabs, "else"+"\n"
+                       +indented(numTabs, "! "+name+" link not present in input file"+"\n"
+                                 +"write(ounit,*) \"WARNING: "+name+" link not found\"", indentationChar)+"\n"
+                       +"endif ! check if "+name+" link exists", indentationChar)+"\n"
+              +"endif ! query existence of "+name+" link")
+    return output
+
+def _objectAtLink(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output = ("! query existence of object at /input link"+"\n"
+              +"call h5oexists_by_name_f(file_id, \"input\", item_exists, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(*,*) \"error checking for presence of object at /input\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked for presence of an object at /input link\" ; endif"+"\n"
+                      +"! check that there exists an item at the /input link"+"\n"
+                      +"if (item_exists) then"+"\n"
+                      +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked that there exists an item at /input\" ; endif"+"\n"
+                                +_openObject(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar), indentationChar)+"\n"
+              +indented(numTabs, "else"+"\n"
+                       +indented(numTabs, "! /input link present but does not resolve to any object"+"\n"
+                                 +"write(ounit,*) \"/input link present but does not resolve to any object\"", indentationChar)+"\n"
+                       +"endif ! check that there exists an item at the /input link", indentationChar)+"\n"
+              +"endif ! query existence of object at /input link")
+    return output
+    
+    
+def _openObject(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    return _queryType(enclosingGroup, name, contents, numTabs, indentationChar)
+
+def _queryType(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    return _checkIsGroup(enclosingGroup, name, contents, numTabs, indentationChar)
+
+def _checkIsGroup(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    return _readGroupContents(enclosingGroup, name, contents, numTabs, indentationChar)
+
+def _readGroupContents(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output = ""
     if type(contents) is list:
         print("read group '"+name+"' from HDF5 file")
         for item in contents:
             if type(item) is Variable:
-                readHdf5Dataset(item)
+                output += readHdf5Dataset("grp_"+name, item, numTabs, indentationChar)+"\n"
             elif type(item) is Namelist:
-                readHdf5Group(item.name, item.variables)
+                output += readHdf5Group("grp_"+name, item.name, item.variables, numTabs, indentationChar)+"\n"
     elif type(contents) is Namelist:
         print("read namelist '"+contents.name+"' from HDF5 file")
-        readHdf5Group(contents.name, contents.variables)
+        output += readHdf5Group("grp_"+name, contents.name, contents.variables, numTabs, indentationChar)+"\n"
+    return output
 
-def readHdf5Dataset(item):
+
+
+def readHdf5Dataset(enclosingGroup, item, numTabs=1, indentationChar="\t"):
     print("read dataset "+item.name)
-    
+    return "! read "+item.name
 
 
 
