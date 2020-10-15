@@ -183,7 +183,7 @@ def _checkIsGroup(enclosingGroup, name, contents, numTabs=1, indentationChar="\t
               +"if (item_type.ne.H5I_GROUP_F) then"+"\n"
               +indented(numTabs, "write(ounit,*) \"error verifying that object "+name+" is a Group(\",H5I_GROUP_F,\"); rather it is \",item_type", indentationChar)+"\n"
               +"else"+"\n"
-              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully verified that "+name+" is a Group\" ; endif"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully verified that "+name+" is a Group\" ; endif"+"\n"
                         +nestedOperation(enclosingGroup, name, contents, numTabs, indentationChar, nextOperations), indentationChar)+"\n"
               +"endif ! check if "+name+" is a Group")
     return output
@@ -295,7 +295,7 @@ def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t
                         _openObject,
                         _queryType,
                         _checkIsGroup,
-                        _readGroupContents])
+                        _readGroupContents])+"\n"
 
 
 
