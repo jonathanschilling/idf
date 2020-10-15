@@ -140,6 +140,22 @@ def declareNamelist(nml):
     result += " "+nml.variables[-1].name
     return result
 
+
+# The following scheme to verify the existence, correct type and reasonable value of the Dataset
+# is outlined in the documentation of the e.g. h5oexists_by_name_f library routine:
+# https://portal.hdfgroup.org/display/HDF5/H5O_EXISTS_BY_NAME
+# The procedure consists essentially of the following steps logically nested within each other:
+#  1. check if the link with the given Dataset or Group name exists
+#  2. check that the link at the given name resolves to an object
+#  3. open the object at the given name
+#  4. query the object type of the just-opened object
+#  5. get the datatype of the object
+#  6. convert the datatype into the native datatype for endianess-agnostic comparison
+#  7. compare the native datatype with the expected native datatype
+#  8. read the Dataset using the verified native datatype
+#  9. close the native datatype
+# 10. close the Dataset object
+
 def _readGroupContents(enclosingGroup, name, contents, numTabs=1, indentationChar="\t", nestedOperations=None):
     output = ""
     if type(contents) is list:
