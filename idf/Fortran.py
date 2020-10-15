@@ -140,8 +140,6 @@ def declareNamelist(nml):
     result += " "+nml.variables[-1].name
     return result
 
-
-
 def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
     return _linkExists(enclosingGroup, name, contents, numTabs, indentationChar)
 
@@ -152,7 +150,7 @@ def _linkExists(enclosingGroup, name, contents, numTabs=1, indentationChar="\t")
               +indented(numTabs, "write(ounit,*) \"error checking if "+name+" link exists\"", indentationChar)+"\n"
               +"else"+"\n"
               +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked if the "+name+" link exists\" ; endif"+"\n"
-                        +"! check that /input link exists"+"\n"
+                        +"! check that "+name+" link exists"+"\n"
                         +"if (item_exists) then"+"\n"
                         +indented(numTabs, "if (verbose) then; write(ounit,*) \"successfully checked that the link "+name+" exists\" ; endif"+"\n"
                                   +_objectAtLink(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar), indentationChar)+"\n"
@@ -164,32 +162,65 @@ def _linkExists(enclosingGroup, name, contents, numTabs=1, indentationChar="\t")
     return output
 
 def _objectAtLink(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
-    output = ("! query existence of object at /input link"+"\n"
-              +"call h5oexists_by_name_f(file_id, \"input\", item_exists, hdfier)"+"\n"
+    output = ("! query existence of object at "+name+" link"+"\n"
+              +"call h5oexists_by_name_f("+enclosingGroup+", \""+name+"\", item_exists, hdfier)"+"\n"
               +"if (hdfier.ne.0) then"+"\n"
-              +indented(numTabs, "write(*,*) \"error checking for presence of object at /input\"", indentationChar)+"\n"
+              +indented(numTabs, "write(ounit,*) \"error checking for presence of object at "+name+"\"", indentationChar)+"\n"
               +"else"+"\n"
-              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked for presence of an object at /input link\" ; endif"+"\n"
-                      +"! check that there exists an item at the /input link"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked for presence of an object at "+name+" link\" ; endif"+"\n"
+                      +"! check that there exists an item at the "+name+" link"+"\n"
                       +"if (item_exists) then"+"\n"
-                      +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked that there exists an item at /input\" ; endif"+"\n"
+                      +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully checked that there exists an item at "+name+"\" ; endif"+"\n"
                                 +_openObject(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar), indentationChar)+"\n"
               +indented(numTabs, "else"+"\n"
-                       +indented(numTabs, "! /input link present but does not resolve to any object"+"\n"
-                                 +"write(ounit,*) \"/input link present but does not resolve to any object\"", indentationChar)+"\n"
-                       +"endif ! check that there exists an item at the /input link", indentationChar)+"\n"
-              +"endif ! query existence of object at /input link")
+                       +indented(numTabs, "! "+name+" link present but does not resolve to any object"+"\n"
+                                 +"write(ounit,*) \""+name+" link present but does not resolve to any object\"", indentationChar)+"\n"
+                       +"endif ! check that there exists an item at the "+name+" link", indentationChar)+"\n"
+              +"endif ! query existence of object at "+name+" link")
     return output
     
     
 def _openObject(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
-    return _queryType(enclosingGroup, name, contents, numTabs, indentationChar)
+    output = ("! try to open "+name+" object"+"\n"
+              +"call h5oopen_f("+enclosingGroup+", \""+name+"\", grp_"+name+", hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error opening object "+name+"\""+"\n", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully opened object at "+name+"\" ; endif"+"\n"
+                        +_queryType(enclosingGroup, name, contents, numTabs, indentationChar)+"\n"
+                        +_closeObject(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar)+"\n"
+              +"endif ! try to open "+name+" object")
+    return output
+
+def _closeObject(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
+    output = ("call h5oclose_f("+enclosingGroup+", hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error closing object "+name+"\"", indentationChar)+"\n"
+              +"elseif (verbose) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"successfully closed object "+name+"\"", indentationChar)+"\n"
+              +"endif")
+    return output
 
 def _queryType(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
-    return _checkIsGroup(enclosingGroup, name, contents, numTabs, indentationChar)
+    output = ("! query type of "+name+" object"+"\n"
+              +"call h5iget_type_f("+enclosingGroup+", item_type, hdfier)"+"\n"
+              +"if (hdfier.ne.0) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error querying type of object "+name+"\"", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully queried item type of "+name+"\" ; endif"+"\n"
+                        +_checkIsGroup(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar)+"\n"
+              +"endif ! query type of "+name+" object")
+    return output
 
 def _checkIsGroup(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
-    return _readGroupContents(enclosingGroup, name, contents, numTabs, indentationChar)
+    output = ("! check if "+name+" is a Group"+"\n"
+              +"if (item_type.ne.H5I_GROUP_F) then"+"\n"
+              +indented(numTabs, "write(ounit,*) \"error verifying that object "+name+" is a Group(\",H5I_GROUP_F,\"); rather it is \",item_type", indentationChar)+"\n"
+              +"else"+"\n"
+              +indented(numTabs, "if (verbose) then ; write(ounit,*) \"successfully verified that "+name+" is a Group\" ; endif"
+                        +_readGroupContents(enclosingGroup, name, contents, numTabs, indentationChar), indentationChar)+"\n"
+              +"endif ! check if "+name+" is a Group")
+    return output
 
 def _readGroupContents(enclosingGroup, name, contents, numTabs=1, indentationChar="\t"):
     output = ""
