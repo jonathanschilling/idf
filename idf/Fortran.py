@@ -6,33 +6,14 @@ Created on Tue Nov 26 15:17:47 2019
 @author: Jonathan Schilling (jonathan.schilling@ipp.mpg.de)
 """
 
-#%% prepare for code generation
+# prepare for code generation
 
-from .idf import indented
-
-def indent(tabs, lines, indentationChar='\t'):
-    return tabs+1, indented(tabs, lines, indentationChar)
-
-def unindent(tabs, lines, indentationChar='\t'):
-    return tabs-1, indented(tabs, lines, indentationChar)
+from .idf import indented, get_creation_tag
 
 
-#%% document who created the reading routines when on which machine
 
-from datetime import datetime
-import getpass
-import platform
-
-# dd/mm/YY H:M:S in UTC
-now_string = datetime.utcnow().strftime('%d/%m/%Y %H:%M:%S UTC')
-username = getpass.getuser()
-hostname = platform.node()
-
-creation_tag = 'auto-created by a user called \''+username+'\' on a machine called \''+hostname+'\' at '+now_string
-
-
-#%% datatype in Fortran from specification file
-def fortran_dtype(dtype):
+# datatype in Fortran from specification file
+def dtype(dtype):
     if dtype=='int':
         return 'integer'
     elif dtype=='double':
@@ -42,7 +23,7 @@ def fortran_dtype(dtype):
     else:
         return 'type('+str(dtype)+')'
 
-def fortran_val(val):
+def val(val):
     if type(val) is bool:
         if val:
             return ".TRUE."
@@ -51,8 +32,8 @@ def fortran_val(val):
     else:
         return str(val)
 
-def commentOut(multilineString):
-    comment = "!< "
+def commentOut(multilineString, commentDirection = ">"):
+    comment = "!"+commentDirection+" "
     if type(multilineString) is not str:
         raise TypeError("type of given multilineString should be str, not "+
                         str(type(multilineString))+
@@ -69,7 +50,7 @@ from .idf import Variable, toDoc
 # declare a variable including dimensions(TODO) and doxygen-compatible comments
 def declareVariable(var, attachDescription=True, refDeclLength=None):
     if type(var) is Variable:
-        decl  = fortran_dtype(var.dtype)
+        decl = dtype(var.dtype)
         
         if var.isParameter:
             decl += ", parameter"
@@ -105,13 +86,13 @@ def declareVariable(var, attachDescription=True, refDeclLength=None):
             decl += ")"
         
         decl += " = "
-        decl += fortran_val(var.defaultValue)
+        decl += val(var.defaultValue)
         if refDeclLength is None:
             # take length of this declaration as reference if no external one proviede
             refDeclLength = len(decl)
         if attachDescription:
             decl += " "
-            decl_doc = commentOut(toDoc(var.description))
+            decl_doc = commentOut(toDoc(var.description), commentDirection="<")
             if "\n" in decl_doc:
                 # indent all but first line by length of declaration,
                 # so that the following documentation lines are aligned
@@ -139,18 +120,18 @@ def declareNamelist(nml):
     return result
 
 
-#%% generate Fortran type declarations
+# generate Fortran type declarations
 from .Hdf5File import Group, Dataset, Datatype
 
 
 # generate custom compound datatype declaration in Fortran
-def fortran_genType(name, members):
+def genType(name, members):
     ret = 'TYPE '+name+'\n'
     for member in members:
         if type(member) == Group or type(member) == Datatype:
             ret += '    TYPE('+member.name+')'
         else:
-            ret += '    '+fortran_dtype(member.dtype)
+            ret += '    '+dtype(member.dtype)
             if member.rank>0:
                 ret += ', ALLOCATABLE'
         ret += ' :: '+member.name
@@ -167,7 +148,7 @@ def fortran_genType(name, members):
     return ret
 
 # initial code of loading routine
-def fortran_startLoader(f):
+def startLoader(f):
     f.write("""subroutine loadSpec(s, filename, ierr)
   use hdf5
   implicit none
@@ -194,7 +175,7 @@ def fortran_startLoader(f):
 """)
 
 # finalizing code of loading routine
-def fortran_endLoader(f):
+def endLoader(f):
     f.write("""
 9998 continue
   
@@ -210,7 +191,7 @@ end subroutine loadSpec
 """)
 
 # write demo code
-def fortran_demoLoader(f):
+def demoLoader(f):
     f.write("""
 program test_read_spec
   use read_spec
@@ -230,7 +211,7 @@ end program test_read_spec
 """)
 
 # read a scalar (int or double) from HDF5 variable srcPath into the source code variable targetPath
-def fortran_loadItem(f, item):
+def loadItem(f, item):
     
     srcName    = item.getFullName()
     
@@ -318,19 +299,19 @@ def fortran_loadItem(f, item):
     f.write(fmt.format(srcName=srcName, targetName=targetName, h5type=h5type, rank=item.rank))
     
 # initial code of loading routine
-def fortran_startFree(f):
+def startFree(f):
     f.write("""subroutine freeSpec(s)
   implicit none
   type(SpecOutput), intent(inout) :: s ! datastructure to free
 """)
 
 # finalizing code of loading routine
-def fortran_endFree(f):
+def endFree(f):
     f.write("""end subroutine freeSpec
 """)
 
 # free an allocated item of rank .ge. 1
-def fortran_freeItem(f, item):
+def freeItem(f, item):
     
     srcName    = item.getFullName()
     targetName = "s"+srcName.replace("/","%")
@@ -338,91 +319,3 @@ def fortran_freeItem(f, item):
     if (item.rank > 0):
         print("free {}".format(targetName))
         f.write("  deallocate("+targetName+")\n")
-    
-
-#%% actually generate Fortran module for reading SPEC output files
-def genFortranReader(outdir, moduleName, s):
-    
-    # we need to reverse the definition order so that types which are used inside other types
-    # are already defined when used
-    reverse_rootStack =  []
-        
-    rootStack = []
-    rootStack.append(s.rootGroup)
-    while len(rootStack)>0:
-        currentItem = rootStack[-1]
-        rootStack = rootStack[:-1]
-        
-        if currentItem is not s.rootGroup:
-            reverse_rootStack.append(currentItem)
-        if type(currentItem)==Group:
-            for item in currentItem.items:
-                rootStack.append(item)
-    
-    
-    fortranFilename = outdir+moduleName+".f90"
-    print("creating Fortran reading module into '"+fortranFilename+"'")
-    
-    # begin code for root group (== enclosing class)
-    f=open(fortranFilename, "w")
-    
-    f.write("""! AUTO-GENERATED; DO NOT COMMIT CHANGES TO THIS FILE !
-! """+creation_tag+"""
-module """+moduleName+"\n")
-    
-    # custom datatypes come first
-    for dtype in s.getDatatypes():
-        f.write(fortran_genType(dtype.name, dtype.items)+'\n')
-        
-    # we need to reverse the definition order so that types which are used inside other types
-    # are already defined when used
-    reverse_groupStack =  []
-    
-    groupStack = []
-    groupStack.append(s.rootGroup)
-    while len(groupStack)>0:
-        currentGroup = groupStack[-1]
-        groupStack = groupStack[:-1]
-        
-        if type(currentGroup)==Group:
-            reverse_groupStack.append(currentGroup)
-    
-        for item in currentGroup.items:
-            if type(item)==Group:
-                groupStack.append(item)
-    
-    # iterate in reverse order over the discovered variables to generate type definitions in correct order
-    for currentGroup in reverse_groupStack[::-1]:
-        f.write(fortran_genType(currentGroup.name, currentGroup.items)+'\n')
-    
-    f.write("contains\n")
-    
-    # initial code of loading routine
-    fortran_startLoader(f)
-    
-    # loop over all variables again and put the loader code for each of them one after another
-    for currentGroup in reverse_groupStack[::-1]:
-        for item in currentGroup.items:
-            if type(item)==Dataset:
-                fortran_loadItem(f, item)
-        
-    # finalizing code of loading routine
-    fortran_endLoader(f)
-    
-    # write the freeSpec subroutine to free the memory it occupied
-    fortran_startFree(f)
-    
-    for currentGroup in reverse_groupStack[::-1]:
-        for item in currentGroup.items:
-            if type(item)==Dataset:
-                fortran_freeItem(f, item)
-    
-    # finalizing code of freeing routine
-    fortran_endFree(f)
-    
-    f.write("end module read_spec\n")
-
-    # write demo code
-    #fortran_demoLoader(f)
-
-    f.close()

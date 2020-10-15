@@ -99,6 +99,12 @@ def indented(tabs, strInput, indentationChar="\t"):
         indented = indentation+strInput
     return indented
 
+def indent(tabs, lines, indentationChar='\t'):
+    return tabs+1, indented(tabs, lines, indentationChar)
+
+def unindent(tabs, lines, indentationChar='\t'):
+    return tabs-1, indented(tabs, lines, indentationChar)
+
 # convert the description item from a Variable into the corresponding documentation
 def toDoc(desc):
     if   type(desc) is str:
@@ -141,4 +147,17 @@ def desc_listToDoc(desc_list):
         htmlListsPutThere += liIndented+"\n"
     htmlListsPutThere += "</ul>"
     return htmlListsPutThere
+
+# document who created the reading routines when on which machine
+def get_creation_tag():
+    from datetime import datetime
+    import getpass
+    import platform
+    
+    # dd/mm/YY H:M:S in UTC
+    now_string = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    username = getpass.getuser()
+    hostname = platform.node()
+    creation_tag = 'user=\''+username+'\' machine=\''+hostname+'\' time='+now_string
+    return creation_tag
 
