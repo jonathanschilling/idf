@@ -490,6 +490,10 @@ def readHdf5Group(enclosingGroup, name, contents, numTabs=1, indentationChar="\t
 
 
 def readHdf5Dataset(enclosingGroup, item, numTabs=1, indentationChar="\t"):
+    # TODO: build list of nested operations based on given Variable:
+    # rank need to be checked
+    # also dtype needs to match
+    
     return _linkExists(enclosingGroup, item.name, None, numTabs, indentationChar,
                         [_objectAtLink,
                         _openObject,
