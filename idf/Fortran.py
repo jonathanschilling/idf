@@ -36,13 +36,18 @@ class Namelist(object):
             self.addVariable(var)
 
 # datatype in Fortran from specification file
-def dtype(dtype):
+def dtype(dtype, maximumIndices = None):
     if dtype=='int':
         return 'integer'
     elif dtype=='double':
         return 'real'
     elif dtype=='boolean':
         return 'logical'
+    elif dtype=='string':
+        if maximumIndices is None:
+            return 'character(len=*)'
+        elif type(maximumIndices) is str:
+            return 'character(len='+maximumIndices+')'
     else:
         return 'type('+str(dtype)+')'
 
@@ -52,6 +57,10 @@ def val(val):
             return ".TRUE."
         else:
             return ".FALSE."
+    elif type(val) is str:
+        return "'"+val+"'"
+    elif type(val) is Variable:
+        return val.name
     else:
         return str(val)
 
@@ -71,7 +80,7 @@ def commentOut(multilineString, commentDirection = ">"):
 # declare a variable including dimensions(TODO) and doxygen-compatible comments
 def declareVariable(var, attachDescription=True, refDeclLength=None):
     if type(var) is Variable:
-        decl = dtype(var.dtype)
+        decl = dtype(var.dtype, var.maximumIndices)
         
         if var.isParameter:
             decl += ", parameter"
